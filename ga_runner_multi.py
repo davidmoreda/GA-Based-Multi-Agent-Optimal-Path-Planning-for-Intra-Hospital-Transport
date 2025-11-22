@@ -131,7 +131,7 @@ def run_ga_multi(
     random.seed(seed)
     np.random.seed(seed)
 
-    env, starts, picks, drops = prepare_environment()
+    env, starts, picks, drops = prepare_environment(show_grid=False)
 
     # === MULTI = True → usa evaluate_multi ===
     tb, base_routes = ga_setup(env, starts, picks, drops, multi=True)
@@ -150,7 +150,6 @@ def run_ga_multi(
 
     logbook = tools.Logbook()
     logbook.header = ["gen"] + stats.fields
-
     # Evaluación inicial
     invalid_ind = [ind for ind in pop if not ind.fitness.valid]
     fitnesses = list(map(tb.evaluate, invalid_ind))
@@ -163,7 +162,7 @@ def run_ga_multi(
 
     record = stats.compile(pop)
     logbook.record(gen=0, **record)
-    print(logbook.stream)
+    #print(logbook.stream)
 
     # ------------------------------------------------------
     # BUCLE PRINCIPAL NSGA-II
@@ -310,14 +309,22 @@ def run_ga_multi(
 
 if __name__ == "__main__":
     run_ga_multi(
-        pop_size=57,
-        ngen=248, #248 optuna
-        cxpb=0.5475809615019229,
-        mutpb=0.20546606617312818,
-        seed=0,
+        pop_size=100,
+        ngen=1000, #248 optuna
+        cxpb=0.6,
+        mutpb=0.4,
+        seed=42,
         show_plots=True,
         show_anim=True,
-        save_anim=False,
-        anim_file="routes_animation_ga_multi_57_1000_0547_0205_s0.mp4",
+        save_anim=True,
+        anim_file="routes_animation_ga_multi_100_1000_06_04_s42.mp4",
         debug_interval=50
     )
+
+"""
+
+    Best is trial 33 with value: 1883.695525366711.
+    Mejores hiperparámetros: {'pop_size': 102, 'ngen': 229, 'cxpb': 0.5785600640553049, 'mutpb': 0.42699414282096926}
+    Mejor valor objetivo: 1883.695525366711
+
+"""

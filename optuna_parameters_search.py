@@ -20,7 +20,7 @@ def objective(trial):
             show_plots=False,
             show_anim=False,
             save_anim=False,
-            debug_interval=ngen+1
+            debug_interval=ngen-1
         )
 
         penal, clean = out["best_tradeoff"].fitness.values
