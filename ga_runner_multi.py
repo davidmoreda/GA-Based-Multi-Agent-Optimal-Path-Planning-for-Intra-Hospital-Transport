@@ -309,10 +309,10 @@ def run_ga_multi(
 
 if __name__ == "__main__":
     run_ga_multi(
-        pop_size=100,
-        ngen=1000, #248 optuna
-        cxpb=0.6,
-        mutpb=0.4,
+        pop_size=193,
+        ngen=861, #248 optuna
+        cxpb=0.86,
+        mutpb=0.29,
         seed=42,
         show_plots=True,
         show_anim=True,
@@ -323,8 +323,11 @@ if __name__ == "__main__":
 
 """
 
-    Best is trial 33 with value: 1883.695525366711.
-    Mejores hiperparámetros: {'pop_size': 102, 'ngen': 229, 'cxpb': 0.5785600640553049, 'mutpb': 0.42699414282096926}
-    Mejor valor objetivo: 1883.695525366711
+==============================
+        RESULTADOS
+==============================
+Mejores hiperparámetros: {'pop_size': 193, 'ngen': 861, 'cxpb': 0.8590682037624086, 'mutpb': 0.2859937650070929}
+Mejor valor (neg-HV): -13744945.923745966
+Hypervolume estimado: 13744945.923745966
 
 """
