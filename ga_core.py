@@ -18,6 +18,7 @@ MIN_SEP = 6.0          # distancia mínima requerida
 # Pesos
 
 WAIT_PENAL        = 0.01
+
 WAIT_BLOCK_WEIGHT = 0.5
 W_BACK            = 5.0
 BIG_PENALTY = 100000
@@ -366,7 +367,25 @@ def ga_setup(env, starts, picks, drops, multi=False):
 
     # --- inicialización ---
     def init_ind():
-        return IndClass([br[:] for br in base_routes])
+        # Empezamos desde base_routes pero les metemos "ruido" controlado
+        ind_routes = [br[:] for br in base_routes]
+
+        # aplicamos algunas mutaciones aleatorias para diversificar
+        for k in range(len(ind_routes)):
+            r = ind_routes[k]
+
+            if random.random() < 0.6:
+                r = mutate_segment(r, G)
+            if random.random() < 0.4:
+                r = mutate_macro_detour(r, G, env)
+            if random.random() < 0.5:
+                r = mutate_long_wait(r, G)
+            if random.random() < 0.5:
+                r = mutate_shift_start(r, G)
+
+            ind_routes[k] = r
+
+        return IndClass(ind_routes)
 
     tb.register("individual", init_ind)
     tb.register("population", tools.initRepeat, list, tb.individual)
@@ -386,7 +405,7 @@ def ga_setup(env, starts, picks, drops, multi=False):
                 r = mutate_wait(r, G)
             if random.random() < 0.25:
                 r = mutate_shift_start(r, G)
-            if conflicts and random.random() < 0.40:
+            if conflicts and random.random() < 0.80:
                 r = mutate_conflict(r, G, conflicts)
             ind[k] = r
         return (ind,)

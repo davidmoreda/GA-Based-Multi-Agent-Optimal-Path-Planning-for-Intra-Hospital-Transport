@@ -379,8 +379,8 @@ def run_sa(
 
 if __name__ == "__main__":
     run_sa(
-        n_iter=15000,
-        start_temp=10.0,
+        n_iter=8000,
+        start_temp=5.0,
         end_temp=0.01,
         seed=42,
         show_plots=True,

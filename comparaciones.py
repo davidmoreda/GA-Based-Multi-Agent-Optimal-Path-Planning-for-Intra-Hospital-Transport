@@ -1,196 +1,201 @@
-# comparaciones.py
+# comparador_total_svg.py
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+from datetime import datetime
 
 from ga_runner import run_ga
-from ga_runner_multi import run_ga
-from sa_runner import run_sa
+from ga_runner_multi import run_ga_multi
 from mulambda_runner import run_mulambda
+from sa_runner import run_sa
 
 
-def ejecutar_todos():
-    """
-    Ejecuta GA, SA y μ+λ con unos parámetros razonables y devuelve
-    sus resultados en un diccionario.
-    """
+# ============================================================
+#       GENERADOR DE NOMBRE DESCRIPTIVO (SEGÚN PARÁMETROS)
+# ============================================================
+def make_tag(algoname, params):
+    p = "_".join([f"{k}{v}" for k, v in params.items()
+                  if isinstance(v, (int, float, str))])
+    return f"{algoname}_{p}".replace(".", "-").replace("__", "_")
 
-    # ---------- Parámetros de cada algoritmo ----------
-    # Ajusta estos si quieres que tengan presupuestos "similares"
-    params_ga = dict(
-        pop_size=100,
-        ngen=200,
-        cxpb=0.7,
-        mutpb=0.3,
-        seed=42,
-        show_plots=False,
-        show_anim=False,
-        save_anim=False,
-        debug_interval=50,
-    )
 
-    params_sa = dict(
-        n_iter=5000,
-        start_temp=10.0,
-        end_temp=0.01,
-        seed=42,
-        show_plots=False,
-        show_anim=False,
-        save_anim=False,
-        debug_interval=1000,
-    )
+# ============================================================
+#           Crea carpeta results si no existe
+# ============================================================
+os.makedirs("results", exist_ok=True)
 
-    params_mulambda = dict(
-        mu=100,
-        lambda_=100,
-        ngen=1333,
-        cxpb=0.7,
-        mutpb=0.3,
-        seed=42,
-        show_plots=False,
-        show_anim=False,
-        save_anim=False,
-        debug_interval=50,
-    )
 
-    print("=== Ejecutando GA ===")
+# ============================================================
+#       1) EJECUTAR TODOS LOS ALGORITMOS
+# ============================================================
+def ejecutar_todos(params_ga, params_sa, params_es, params_mo):
+    print("\n===== Ejecutando GA Simple =====")
     res_ga = run_ga(**params_ga)
 
-    print("\n=== Ejecutando SA ===")
+    print("\n===== Ejecutando SA =====")
     res_sa = run_sa(**params_sa)
 
-    print("\n=== Ejecutando μ+λ ===")
-    res_es = run_mulambda(**params_mulambda)
+    print("\n===== Ejecutando μ+λ =====")
+    res_es = run_mulambda(**params_es)
+
+    print("\n===== Ejecutando NSGA-II =====")
+    res_mo = run_ga_multi(**params_mo)
 
     return {
-        "GA": res_ga,
-        "SA": res_sa,
-        "MULAMBDA": res_es,
+        "GA": (res_ga, params_ga),
+        "SA": (res_sa, params_sa),
+        "MULAMBDA": (res_es, params_es),
+        "NSGAII": (res_mo, params_mo)
     }
 
 
+# ============================================================
+#       2) GRÁFICAS DE CONVERGENCIA
+# ============================================================
 def plot_convergencia_best(results):
-    """
-    Compara la convergencia de la mejor distancia limpia (clean_best)
-    de los tres algoritmos.
-    """
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(10,5))
     plt.yscale("log")
 
-    # GA
-    ga_best = np.array(results["GA"]["clean_best"], dtype=float)
-    gens_ga = np.arange(1, len(ga_best) + 1)
-    plt.plot(gens_ga, ga_best, label="GA (mejor)", linewidth=2)
+    # GA simple
+    r, p = results["GA"]
+    plt.plot(r["clean_best"], label="GA")
 
     # μ+λ
-    es_best = np.array(results["MULAMBDA"]["clean_best"], dtype=float)
-    gens_es = np.arange(1, len(es_best) + 1)
-    plt.plot(gens_es, es_best, label="μ+λ (mejor)", linewidth=2)
+    r, p = results["MULAMBDA"]
+    plt.plot(r["clean_best"], label="μ+λ")
 
-    # SA (usa iteraciones en vez de generaciones)
-    sa_best = np.array(results["SA"]["clean_best"], dtype=float)
-    it_sa = np.arange(1, len(sa_best) + 1)
-    plt.plot(it_sa, sa_best, label="SA (mejor)", linewidth=2)
+    # SA
+    r, p = results["SA"]
+    plt.plot(r["clean_best"], label="SA")
 
-    plt.xlabel("Generación / Iteración")
-    plt.ylabel("Distancia real (log)")
-    plt.title("Convergencia de la mejor distancia real")
-    plt.legend()
+    # NSGA-II
+    r, p = results["NSGAII"]
+    mins = r["logbook"].select("min")
+    clean = [c[1] for c in mins]
+    plt.plot(clean, label="NSGA-II")
+
+    plt.xlabel("Gen / Iter")
+    plt.ylabel("Clean distance (log)")
+    plt.title("Convergencia — Mejor distancia real")
     plt.grid(True, linestyle="--", alpha=0.4)
+    plt.legend()
     plt.tight_layout()
-    plt.show()
+
+    filename = "results/convergencia_best.svg"
+    plt.savefig(filename, format="svg")
+    print(f"Guardado: {filename}")
 
 
+# ============================================================
+#       3) GRÁFICA DE MEDIA / SOLUCIÓN ACTUAL
+# ============================================================
 def plot_convergencia_avg(results):
-    """
-    Compara la "media" de distancia limpia:
-      - GA y μ+λ: clean_avg (media en la población)
-      - SA: clean_avg se usa como distancia de la solución actual
-    """
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(10,5))
     plt.yscale("log")
 
     # GA
-    ga_avg = np.array(results["GA"]["clean_avg"], dtype=float)
-    gens_ga = np.arange(1, len(ga_avg) + 1)
-    plt.plot(gens_ga, ga_avg, label="GA (media)", linestyle="--")
+    r, p = results["GA"]
+    plt.plot(r["clean_avg"], label="GA avg", linestyle="--")
 
     # μ+λ
-    es_avg = np.array(results["MULAMBDA"]["clean_avg"], dtype=float)
-    gens_es = np.arange(1, len(es_avg) + 1)
-    plt.plot(gens_es, es_avg, label="μ+λ (media)", linestyle="--")
+    r, p = results["MULAMBDA"]
+    plt.plot(r["clean_avg"], label="μ+λ avg", linestyle="--")
 
-    # SA: media = solución actual
-    sa_avg = np.array(results["SA"]["clean_avg"], dtype=float)
-    it_sa = np.arange(1, len(sa_avg) + 1)
-    plt.plot(it_sa, sa_avg, label="SA (sol. actual)", linestyle="--")
+    # SA
+    r, p = results["SA"]
+    plt.plot(r["clean_avg"], label="SA current", linestyle="--")
 
-    plt.xlabel("Generación / Iteración")
-    plt.ylabel("Distancia real (log)")
-    plt.title("Evolución de la distancia real media / actual")
-    plt.legend()
+    # NSGA-II (no tiene avg limpio directo → usar clean)
+    r, p = results["NSGAII"]
+    mins = r["logbook"].select("avg")
+    clean_avg = [m[1] for m in mins]
+    plt.plot(clean_avg, label="NSGA-II avg", linestyle="--")
+
+    plt.xlabel("Gen / Iter")
+    plt.ylabel("Clean distance (log)")
+    plt.title("Convergencia — Media / solución actual")
     plt.grid(True, linestyle="--", alpha=0.4)
+    plt.legend()
     plt.tight_layout()
-    plt.show()
+
+    filename = "results/convergencia_avg.svg"
+    plt.savefig(filename, format="svg")
+    print(f"Guardado: {filename}")
 
 
+# ============================================================
+#       4) BARRAS: MEJOR DISTANCIA Y TIEMPO
+# ============================================================
 def plot_resumen_barras(results):
-    """
-    Pequeño resumen de:
-      - mejor distancia alcanzada (best_distance)
-      - tiempo de ejecución (time_sec)
-    usando gráficas de barras.
-    """
-    nombres = ["GA", "SA", "μ+λ"]
+    labels = ["GA", "SA", "μ+λ", "NSGA-II"]
 
     best_dist = [
-        results["GA"]["best_distance"],
-        results["SA"]["best_distance"],
-        results["MULAMBDA"]["best_distance"],
+        results["GA"][0]["best_clean"],
+        results["SA"][0]["best_distance"],
+        results["MULAMBDA"][0]["best_distance"],
+        results["NSGAII"][0]["best_tradeoff"].fitness.values[1],
     ]
-
     tiempos = [
-        results["GA"]["time_sec"],
-        results["SA"]["time_sec"],
-        results["MULAMBDA"]["time_sec"],
+        results["GA"][0]["time_sec"],
+        results["SA"][0]["time_sec"],
+        results["MULAMBDA"][0]["time_sec"],
+        results["NSGAII"][0]["logbook"].select("gen")[-1],
     ]
 
-    x = np.arange(len(nombres))
+    x = np.arange(len(labels))
 
-    # ---- Barra de mejores distancias ----
-    plt.figure(figsize=(8, 4))
+    # Distancias
+    plt.figure(figsize=(8,4))
     plt.bar(x, best_dist)
-    plt.xticks(x, nombres)
-    plt.ylabel("Mejor distancia real")
-    plt.title("Comparación de mejor distancia alcanzada")
+    plt.xticks(x, labels)
+    plt.ylabel("Best clean distance")
+    plt.title("Comparación de mejores soluciones")
     plt.tight_layout()
-    plt.show()
+    plt.savefig("results/bar_best_distance.svg", format="svg")
+    print("Guardado: results/bar_best_distance.svg")
 
-    # ---- Barra de tiempos ----
-    plt.figure(figsize=(8, 4))
+    # Tiempo
+    plt.figure(figsize=(8,4))
     plt.bar(x, tiempos)
-    plt.xticks(x, nombres)
-    plt.ylabel("Tiempo de ejecución (s)")
-    plt.title("Comparación de tiempos de ejecución")
+    plt.xticks(x, labels)
+    plt.ylabel("Tiempo (s)")
+    plt.title("Comparación de tiempos")
     plt.tight_layout()
-    plt.show()
+    plt.savefig("results/bar_tiempos.svg", format="svg")
+    print("Guardado: results/bar_tiempos.svg")
 
 
+# ============================================================
+#       MAIN
+# ============================================================
 def main():
-    # Ejecutar los tres algoritmos
-    results = ejecutar_todos()
+    params_ga = dict(
+        pop_size=193, ngen=861, cxpb=0.86, mutpb=0.285,
+        seed=42, show_plots=False, show_anim=False
+    )
 
-    # Mostrar un pequeño resumen numérico por consola
-    print("\n===== RESUMEN NUMÉRICO =====")
-    for name, res in results.items():
-        print(f"\n--- {name} ---")
-        print(f"  Mejor fitness penalizado: {res['best_penalized']:.3f}")
-        print(f"  Mejor distancia real:     {res['best_distance']:.3f}")
-        print(f"  Tiempo de ejecución:      {res['time_sec']:.2f} s")
+    params_sa = dict(
+        n_iter=10000, start_temp=10, end_temp=0.01, seed=42,
+        show_plots=False, show_anim=False
+    )
 
-    # Hacer las gráficas comparativas
+    params_es = dict(
+        pop_size=193, ngen=861, cxpb=0.86, mutpb=0.285,
+        seed=42, show_plots=False, show_anim=False
+    )
+
+    params_mo = dict(
+        pop_size=193, ngen=861, cxpb=0.86, mutpb=0.285,
+        seed=42, show_plots=False, show_anim=False
+    )
+
+    results = ejecutar_todos(params_ga, params_sa, params_es, params_mo)
+
     plot_convergencia_best(results)
     plot_convergencia_avg(results)
     plot_resumen_barras(results)
+
+    print("\n✔ Todas las figuras fueron guardadas en /results/*.svg")
 
 
 if __name__ == "__main__":
