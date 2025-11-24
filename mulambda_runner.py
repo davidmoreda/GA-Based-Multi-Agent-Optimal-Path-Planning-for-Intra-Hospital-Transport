@@ -177,7 +177,7 @@ class FFMpegWriterWithProgress(FFMpegWriter):
 def run_mulambda(
     mu=100,
     lambda_=100,
-    ngen=2000,
+    ngen=200,
     cxpb=0.7,
     mutpb=0.3,
     seed=0,
@@ -300,3 +300,17 @@ def run_mulambda(
         "clean_std": clean_std,
         "time_sec": end_t - start_t
     }
+
+if __name__ == "__main__":
+    run_mulambda(
+        mu=80,
+        lambda_=80,
+        ngen=200,
+        cxpb=0.7,
+        mutpb=0.3,
+        seed=42,
+        show_plots=True,
+        show_anim=True,
+        save_anim=False,
+        debug_interval=20
+    )

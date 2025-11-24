@@ -319,13 +319,13 @@ def run_ga(
 if __name__ == "__main__":
     run_ga(
         pop_size=100,
-        ngen=50,
-        cxpb=0.5,
-        mutpb=0.6,
+        ngen=400,
+        cxpb=0.7,
+        mutpb=0.3,
         seed=42,
         show_plots=True,
         show_anim=True,
-        save_anim=True,
+        save_anim=False,
         anim_file="routes_animation.mp4",
         debug_interval=50,
         metric="penalized"

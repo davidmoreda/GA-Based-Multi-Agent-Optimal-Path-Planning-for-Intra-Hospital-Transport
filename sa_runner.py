@@ -379,13 +379,13 @@ def run_sa(
 
 if __name__ == "__main__":
     run_sa(
-        n_iter=8000,
+        n_iter=5000,
         start_temp=5.0,
         end_temp=0.01,
         seed=42,
         show_plots=True,
         show_anim=True,
-        save_anim=True,
+        save_anim=False,
         anim_file="routes_animation_sa_15000_10_001_42.mp4",
         debug_interval=500
     )

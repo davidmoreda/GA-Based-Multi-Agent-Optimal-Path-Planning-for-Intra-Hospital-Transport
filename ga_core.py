@@ -15,13 +15,13 @@ MOVE_DIAG = math.sqrt(2)
 
 MIN_SEP = 6.0          # distancia mínima requerida
 
-# Pesos
+WAIT_PENAL        = 0.05    
+WAIT_BLOCK_WEIGHT = 1.5      
+W_BACK            = 3.0       
+BIG_PENALTY       = 5000      # para cosas "muy mal" (sin ruta, pick/drop mal, etc.)
+COLLISION_PENALTY = 150       # penalización por conflicto temporal (ajustable)
 
-WAIT_PENAL        = 0.01
 
-WAIT_BLOCK_WEIGHT = 0.5
-W_BACK            = 5.0
-BIG_PENALTY = 100000
 
 random.seed(42)
 
@@ -93,7 +93,8 @@ def build_route(G, start, pick, drop):
     return s1[:-1] + s2[:-1] + s3
 
 # ==============================================================
-# MUTATION AUX
+
+ #MUTATION AUX
 # ==============================================================
 
 def mutate_wait(route, G):
@@ -188,7 +189,7 @@ def mutate_macro_detour(route, G, env, radius=12):
     if p1 is None or p2 is None:
         return route
 
-    new = route[:i] + p1 + p2 + route[i+5:]    
+    new = route[:i] + p1 + p2 + route[i+5:]
     if i > 0 and not G.has_edge(route[i-1], p1[0]):
         return route
     if i+5 < len(route) and not G.has_edge(p2[-1], route[i+5]):
@@ -212,14 +213,11 @@ def mutate_shift_start(route, G):
 # ==============================================================
 # COST FUNCTIONS
 # ==============================================================
-
-
 def cost_distance(route):
     total = 0.0
     for (y1,x1),(y2,x2) in zip(route[:-1], route[1:]):
         total += MOVE_DIAG if abs(y1-y2)+abs(x1-x2) == 2 else MOVE_ORTH
     return total
-
 
 def cost_waits(route):
     waits = [i for i in range(1, len(route)) if route[i] == route[i-1]]
@@ -248,24 +246,19 @@ def penal_pick_drop(route, pick, drop):
     return 0.0
 
 def penal_temporal(routes):
-    K = len(routes)
-    maxT = max(len(r) for r in routes)
+    """
+    Penalización temporal GRADUAL:
+    - Usa detect_conflicts para contar cuántos time-steps tienen conflictos.
+    - Cada conflicto añade COLLISION_PENALTY al coste.
+    Así el GA ve mejora al reducir conflictos, en vez de todo o nada.
+    """
+    conflicts, _ = detect_conflicts(routes)
+    if not conflicts:
+        return 0.0
+    # Puedes cambiar a len(set(conflicts)) si quieres penalizar por timestep
+    # en lugar de por par de agentes.
+    return COLLISION_PENALTY * len(conflicts)
 
-    for t in range(maxT):
-        pos = [r[min(t, len(r)-1)] for r in routes]
-
-        if len(pos) != len(set(pos)):
-            return BIG_PENALTY
-
-        for i in range(K):
-            for j in range(i+1, K):
-                y1,x1 = pos[i]
-                y2,x2 = pos[j]
-                d = math.hypot(y1-y2, x1-x2)
-                if d < MIN_SEP:
-                    return BIG_PENALTY
-
-    return 0.0
 # ==============================================================
 # FITNESS LIMPIO (SOLO DISTANCIA REAL)
 # ==============================================================
@@ -310,15 +303,10 @@ def evaluate_multi(ind, picks, drops, base_routes):
       - objetivo 1: fitness penalizado (como evaluate)
       - objetivo 2: distancia limpia total (evaluate_clean_distance)
     """
-    # -- objetivo 1: fitness penalizado --
     penal_tuple = evaluate(ind, picks, drops, base_routes)
-    penal = penal_tuple[0]     # extraemos el valor
-
-    # -- objetivo 2: fitness limpio --
+    penal = penal_tuple[0]
     clean = evaluate_clean_distance(ind)
-
     return (penal, clean)
-
 
 # ==============================================================
 # GA SETUP
@@ -340,7 +328,6 @@ if not hasattr(creator, "Individual"):
 
 if not hasattr(creator, "IndividualMulti"):
     creator.create("IndividualMulti", list, fitness=creator.FitnessMulti)
-
 
 def ga_setup(env, starts, picks, drops, multi=False):
     """
@@ -367,25 +354,7 @@ def ga_setup(env, starts, picks, drops, multi=False):
 
     # --- inicialización ---
     def init_ind():
-        # Empezamos desde base_routes pero les metemos "ruido" controlado
-        ind_routes = [br[:] for br in base_routes]
-
-        # aplicamos algunas mutaciones aleatorias para diversificar
-        for k in range(len(ind_routes)):
-            r = ind_routes[k]
-
-            if random.random() < 0.6:
-                r = mutate_segment(r, G)
-            if random.random() < 0.4:
-                r = mutate_macro_detour(r, G, env)
-            if random.random() < 0.5:
-                r = mutate_long_wait(r, G)
-            if random.random() < 0.5:
-                r = mutate_shift_start(r, G)
-
-            ind_routes[k] = r
-
-        return IndClass(ind_routes)
+        return IndClass([br[:] for br in base_routes])
 
     tb.register("individual", init_ind)
     tb.register("population", tools.initRepeat, list, tb.individual)
@@ -405,7 +374,7 @@ def ga_setup(env, starts, picks, drops, multi=False):
                 r = mutate_wait(r, G)
             if random.random() < 0.25:
                 r = mutate_shift_start(r, G)
-            if conflicts and random.random() < 0.80:
+            if conflicts and random.random() < 0.95:
                 r = mutate_conflict(r, G, conflicts)
             ind[k] = r
         return (ind,)
@@ -442,8 +411,6 @@ def load_env_from_bmp(path):
     Carga el BMP del hospital y lo invierte para que:
         - 0 = suelo (libre)
         - 255 = pared (obstáculo)
-
-    Esto respeta toda tu lógica del GA sin tocar nada más.
     """
     img_gray = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     if img_gray is None:
@@ -451,35 +418,29 @@ def load_env_from_bmp(path):
 
     print("[INFO] Valores únicos del BMP original:", np.unique(img_gray))
 
-    # Invertir completamente:
     env = 255 - img_gray.astype(np.uint8)
 
     print("[INFO] Valores únicos tras invertir:", np.unique(env))
     return env
 
-
 def show_env_grid_with_points(env, starts, picks, drops):
     H, W = env.shape
     fig, ax = plt.subplots(figsize=(12, 12))
 
-    # == Mapa exacto ==
     ax.imshow(env, cmap="gray", vmin=0, vmax=255,
               origin="upper", interpolation="nearest")
 
-    # === LIMPIEZA TOTAL DE TEXTO ===
-    ax.set_title("")                # sin título
-    ax.set_xticklabels([])          # sin números eje X
-    ax.set_yticklabels([])          # sin números eje Y
-    ax.set_xticks([])               # quitar marcas eje X
-    ax.set_yticks([])               # quitar marcas eje Y
-    ax.tick_params(bottom=False, left=False)  # quitar ticks
+    ax.set_title("")
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.tick_params(bottom=False, left=False)
 
-    # === GRID (solo celdas, sin números) ===
     ax.set_xticks(np.arange(-0.5, W, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, H, 1), minor=True)
     ax.grid(which="minor", color="red", linewidth=0.25)
 
-    # === COLORES POR AGENTE ===
     colors = ["green", "blue", "orange", "purple", "cyan", "yellow"]
     markers = {"start": "o", "pick": "x", "drop": "s"}
 
@@ -489,46 +450,34 @@ def show_env_grid_with_points(env, starts, picks, drops):
         py, px = p
         dy, dx = d
 
-        # Start = círculo
         ax.plot(sx, sy, markers["start"], color=color, markersize=10)
-
-        # Pick = cruz
         ax.plot(px, py, markers["pick"], color=color,
                 markersize=12, markeredgewidth=2)
-
-        # Drop = cuadrado
         ax.plot(dx, dy, markers["drop"], color=color, markersize=10)
 
     ax.invert_yaxis()
     plt.tight_layout()
     plt.show()
 
-
 def prepare_environment(show_grid=False):
     """
     Carga el environment desde el BMP completo, genera starts/picks/drops
     y opcionalmente los visualiza sobre el mapa con simbología por agente.
     """
-    # === 1. Cargar mapa ===
     env = load_env_from_bmp("data/Mapa.bmp")
 
     H, W = env.shape
     print(f"[INFO] Environment cargado: {H} x {W}")
 
-    # === 2. Puntos RAW ===
     starts_raw = [(5,10), (90,10), (50,90), (63,12)]
     picks_raw  = [(40,50), (60,40), (30,60), (12,38)]
     drops_raw  = [(80,80), (20,80), (70,20), (8,78)]
 
-    # === 3. Ajustar a suelo negro (0) ===
     starts = [nearest_free_black(env, y, x) for y, x in starts_raw]
     picks  = [nearest_free_black(env, y, x) for y, x in picks_raw]
     drops  = [nearest_free_black(env, y, x) for y, x in drops_raw]
 
-    # === 4. Visualización opcional ===
     if show_grid:
         show_env_grid_with_points(env, starts, picks, drops)
 
     return env, starts, picks, drops
-
-
