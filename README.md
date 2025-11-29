@@ -101,13 +101,14 @@ The best configurations achieved a hypervolume exceeding **\(1.54 \times 10^7\)*
 If you use this methodology, please cite:
 
 ````bibtex
-@article{amezcua2025ga,
+@article{dma_cgs_2025,
   title={GA-Based Multi-Agent Optimal Path Planning for Intra-Hospital Transport},
-  author={Amezcua, David Moreda and Silva, Carmen Gutiérrez},
+  author={Amezcua, David Moreda and Gutiérrez Silva, Carmen},
   journal={IEEE Access},
   year={2025},
   volume={XX},
   number={XX},
-  pages={XXXX-XXXX},
-  doi={10.1109/ACCESS.2017.DOI}
+  pages={XXXX-XXXX}
+}
+
 }
