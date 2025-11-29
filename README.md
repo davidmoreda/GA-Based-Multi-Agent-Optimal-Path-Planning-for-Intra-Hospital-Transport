@@ -90,6 +90,17 @@ The best configurations achieved a hypervolume exceeding **\(1.54 \times 10^7\)*
 
 <br>
 
+### Route Animation (GA Multi-Objective)
+
+<br>
+
+<video width="700" controls>
+  <source src="figures/routes_animation_ga_multi_120_1000_06_02_s42.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<br>
+
 ---
 
 # 📄 Paper Reference
