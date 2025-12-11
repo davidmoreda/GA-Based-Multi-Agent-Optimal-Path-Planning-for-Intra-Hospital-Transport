@@ -1,0 +1,2 @@
+pop_size,ngen,cxpb,mutpb,best_tradeoff_penalized_mean,best_tradeoff_penalized_std,best_tradeoff_penalized_min,best_tradeoff_penalized_max,best_tradeoff_clean_mean,best_tradeoff_clean_std,best_tradeoff_clean_min,best_tradeoff_clean_max,pareto_size_mean,pareto_size_std,time_sec_mean,time_sec_std,n_runs
+120,1000,0.8,0.3,1227.074,113.014,1084.98,1666.271,1127.301,39.908,1069.98,1208.193,40.194,21.52,372.617,23.741,31
