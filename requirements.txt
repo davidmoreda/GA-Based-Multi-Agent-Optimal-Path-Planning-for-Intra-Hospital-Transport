@@ -1,0 +1,10 @@
+numpy
+matplotlib
+opencv-python
+networkx
+deap
+tqdm
+jupyter
+pandas
+scipy
+tabulate

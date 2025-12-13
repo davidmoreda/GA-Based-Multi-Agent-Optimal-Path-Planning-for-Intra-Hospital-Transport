@@ -1,106 +1,123 @@
 # GA-Based Multi-Agent Optimal Path Planning for Intra-Hospital Transport
 
-This repository contains the source code, data, and experimental results for the paper **"GA-Based Multi-Agent Optimal Path Planning for Intra-Hospital Transport"**.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 
-The framework proposes a complete **Evolutionary Computation (EC)** pipeline to generate safe, efficient, and collision-free routes for multiple autonomous agents during Intra-Hospital Transport (IHT) missions.
+This repository contains the official implementation of the paper **"GA-Based Multi-Agent Optimal Path Planning for Intra-Hospital Transport"**.
 
----
-
-## 🌟 Key Features
-
-| Feature | Description |
-| :--- | :--- |
-| **Problem Formulation** | Modeling of the hospital environment as a directed graph, formalizing a **Multi-Agent Optimal Path Planning (MAOPP)** problem with operational and safety constraints. |
-| **Multi-Objective Optimization** | Use of **NSGA-II** to optimize **path distance** *(F_clean)* and **safety compliance** *(F_pen)*, including penalties for collisions and insufficient separation. |
-| **Algorithmic Benchmark** | Systematic comparison of **GA**, **Simulated Annealing (SA)**, **(μ+λ) ES**, and **NSGA-II** under a shared representation. |
-| **Real Hospital Environment** | Experiments executed on a graph extracted from a real hospital floor plan. |
+We propose a robust **Evolutionary Computation (EC)** framework to solve the Multi-Agent Optimal Path Planning (MAOPP) problem in complex hospital environments. The system optimizes routes for multiple Autonomous Mobile Robots (AMRs), minimizing travel distance while ensuring strict safety constraints and collision avoidance.
 
 ---
 
-# 📁 Project Structure
+## 🚀 Key Features
+
+- **Realistic Environment**: Experiments conducted on a digitized floor plan of a real hospital facility.
+- **Multi-Objective Optimization**: Implementation of **NSGA-II** to balance operational efficiency (Travel Distance) against safety (Risk/Penalties).
+- **Algorithmic Benchmark**: Comprehensive comparison of standard optimization techniques:
+  - Genetic Algorithm (**GA**)
+  - Evolution Strategy (**μ+λ ES**)
+  - Simulated Annealing (**SA**)
+  - **NSGA-II** (Multi-Objective)
+- **Conflict Management**: Advanced temporal conflict detection and penalty mechanisms for safe multi-agent coordination.
+
+---
+
+## 🛠️ Installation & Setup
+
+To reproduce the experiments, ensure you have **Python 3.8+** installed.
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/GA-Hospital-Path-Planning.git
+   cd GA-Hospital-Path-Planning
+   ```
+
+2. **Install dependencies:**
+   It is recommended to use a virtual environment.
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
+
+## 💻 Usage
+
+### 1. Running the Benchmark (Reproducibility)
+To generate the convergence plots and statistical comparisons presented in the paper, run the main Jupyter Notebook:
+
+```bash
+jupyter notebook convergence.ipynb
+```
+This notebook will:
+- Load the pre-trained results from the `hyperparametrization/results/` database.
+- Execute the best configurations for GA, ES, and SA.
+- Plot the convergence curves and Pareto fronts.
+- specific tables containing hyperparameter values and final metrics.
+
+### 2. Running Individual Algorithms
+You can run specific algorithms directly from the command line to see them in action. Parameters can be adjusted in the script or via arguments (if implemented).
+
+```bash
+# Run Genetic Algorithm
+python -m algorithms.ga_runner
+
+# Run Evolution Strategy
+python -m algorithms.mulambda_runner
+```
+
+---
+
+## 📊 Results Summary
+
+### Single-Objective Performace (Minimizing Cost)
+
+The **(μ+λ) Evolution Strategy** demonstrated superior convergence speed and solution quality for single-objective optimization (Penalized Distance).
+
+| Algorithm | Best Result | Metric | Seed |
+| :--- | :--- | :--- | :--- |
+| **(μ+λ) ES** | **1104.66** | Min Cost | 0 |
+| **GA** | **1184.63** | Min Cost | 1 |
+| **SA** | **1989.32** | Min Cost | 2 |
+
+### Multi-Objective Fields (NSGA-II)
+
+NSGA-II successfully identified a diverse set of Pareto-optimal solutions, allowing trade-offs between maximizing safety (Clean Distance) and minimizing total cost (including penalties).
+
+<div align="center">
+  <img src="figures/fig_nsga2_pareto.png" alt="NSGA-II Pareto Front" width="600px">
+  <p><em>Pareto Front: Trade-off between Safety and Efficiency</em></p>
+</div>
+
+### Optimized Routes Visualization
+
+Below is an example of conflict-free routes generated for 4 agents in the hospital environment.
+
+<div align="center">
+  <img src="figures/Routes_multiobjective_comparison_10_1000_06_04_s42.png" alt="Optimized Routes" width="700px">
+</div>
+
+---
+
+## 📂 Project Structure
 
 ```
 .
-├── algorithms/                 # Core evolutionary algorithms + MAOPP logic
-│   ├── ga_core.py              # Encoding, evaluation, operators
-│   ├── ga_runner.py            # Single-objective GA
-│   ├── mulambda_runner.py      # (μ+λ) Evolution Strategy
-│   ├── sa_runner.py            # Simulated Annealing
-│   └── ga_runner_multi.py      # NSGA-II (multi-objective)
-│
-├── data/                       
-│   └── Floorplan/              # Hospital floorplan images
-│
-├── hyperparametrization/
-│   ├── grid_search.py          # Single-objective grid search
-│   └── grid_search_algos.py    # Multi-objective grid search (NSGA-II)
-│
-├── results/                    # SQLite DB with all experiment results
-├── figures/                    # Generated plots
-└── README.md
+├── algorithms/                 # Source code for GA, ES, SA, and NSGA-II
+├── data/                       # Hospital maps and configuration files
+├── figures/                    # Plots and visualizations generated by scripts
+├── hyperparametrization/       # Grid search scripts and SQLite result databases
+├── convergence.ipynb           # Main notebook for analysis and plotting
+├── requirements.txt            # Python dependencies
+└── README.md                   # Project documentation
 ```
 
 ---
 
-# ⚙️ Methodology and Results
+## 📄 Citation
 
-## **Single-Objective Performance**
+If you use this code or methodology in your research, please cite our paper:
 
-A systematic benchmark revealed the superiority of the **(μ+λ) Evolution Strategy** for minimizing the penalized distance \( F_{\text{pen}} \).
-
-| Algorithm | Min Penalized Distance | Mean Penalized Distance |
-| :--- | :--- | :--- |
-| **(μ+λ) ES** | **1104.66** | **1446.59** |
-| GA | 1184.63 | 1453.53 |
-| SA | 1989.32 | 2297.90 |
-
-### Distribution of Penalized Distance
-
-<br>
-
-<img src="figures/fig_single_boxplots.png" width="600px">
-
-<br>
-
----
-
-## **Multi-Objective Optimization (NSGA-II)**
-
-NSGA-II was used to identify the Pareto-optimal set for the bi-objective problem:
-
-\[
-\min(F_{\text{clean}},\; F_{\text{pen}})
-\]
-
-The best configurations achieved a hypervolume exceeding **\(1.54 \times 10^7\)**.
-
-### Best Achieved Pareto Front
-
-<br>
-
-<img src="figures/fig_nsga2_pareto.png" width="650px">
-
-<br>
-
-### Optimized Multi-Agent Routes
-
-<br>
-
-<img src="figures/Routes_multiobjective_comparison_10_1000_06_04_s42.png" width="700px">
-
-<br>
-
-### Route Animation (GA Multi-Objective)
-
-![GA Multi-Agent Routes Animation](figures/animation.gif)
-
----
-
-# 📄 Paper Reference
-
-If you use this methodology, please cite:
-
-````bibtex
+```bibtex
 @article{dma_cgs_2025,
   title={GA-Based Multi-Agent Optimal Path Planning for Intra-Hospital Transport},
   author={Amezcua, David Moreda and Gutiérrez Silva, Carmen},
@@ -110,5 +127,8 @@ If you use this methodology, please cite:
   number={XX},
   pages={XXXX-XXXX}
 }
+```
 
-}
+---
+
+**Authors:** David Moreda Amezcua & Carmen Gutiérrez Silva
